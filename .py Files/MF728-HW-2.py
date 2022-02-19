@@ -7,7 +7,6 @@ Created on Fri Feb 18 21:55:09 2022
 
 import pandas as pd
 import numpy as np
-from tabulate import tabulate
 import matplotlib.pyplot as plt
 
 class IRStransforms():                                                         # class to extract FRAs, zeros and discount factors
