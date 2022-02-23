@@ -5,8 +5,6 @@ Created on Mon Feb  7 16:36:01 2022
 @author: Thomas Kuntz MF728-HW-1
 """
 
-# Thomas Kuntz MF728 hw-1
-
 import pandas as pd
 import numpy as np
 from math import *
