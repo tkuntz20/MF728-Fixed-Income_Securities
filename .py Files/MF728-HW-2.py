@@ -2,7 +2,7 @@
 """
 Created on Fri Feb 18 21:55:09 2022
 
-@author: Thomas Kuntz
+@author: Thomas Kuntz MF728-HW-2
 """
 
 import pandas as pd
