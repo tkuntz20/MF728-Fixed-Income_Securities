@@ -8,7 +8,6 @@ Created on Mon Feb  7 16:36:01 2022
 # Thomas Kuntz MF728 hw-1
 
 import pandas as pd
-import pandas_datareader
 import numpy as np
 from math import *
 import QuantLib as ql
@@ -21,7 +20,6 @@ from scipy.optimize import newton
 from tabulate import tabulate
 from pandas_datareader import data
 import matplotlib.pyplot as plt
-from sympy.stats import Normal, cdf
 from datetime import datetime
 import calendar
 
