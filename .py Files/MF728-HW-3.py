@@ -209,6 +209,7 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
     print(f'put theta:   {Greeks.theta()[1]}')
     print(f'call theta:   {Greeks.theta()[0]}')
 
+    # Problem 1
     # caplet inputs
     K = 0.0125
     F = 0.0125
@@ -221,8 +222,8 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
     lnCaplet = Caplet.logNormalCaplet()
     bachCaplet = Caplet.bachelierCaplet()
     ivCaplet = Caplet.impliedVolatility(K, F, sigma, delta, expiry, t)
-    print(f'Log Normal value:  {lnCaplet}\n')
-    print(f'Bachelier value:    {bachCaplet}\n')
+    print(f'Log Normal value:  {lnCaplet}')
+    print(f'Bachelier value:    {bachCaplet}')
     print(f'Implied volatility:  {ivCaplet}\n')
 
     CG = capletGreeks(K, F, sigma, delta, expiry, t, lnCaplet, df)
@@ -234,6 +235,37 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
     print(f'gamma: {gammaCaplet}')
     print(f'vega:  {vegaCaplet}')
     print(f'theta:  {thetaCaplet}\n')
+
+    K = [0.005,0.0075,0.01,0.0125]
+    F = 0.0125
+    sigma = 0.15
+    delta = 0.25
+    expiry = 1.25
+    t = 1
+
+    for k in K:
+        print(f'-----Output for differing strikes, K = {k}-----')
+        Caplet = caplet(k, F, sigma, delta, expiry, t)
+        lnCaplet = Caplet.logNormalCaplet()
+        bachCaplet = Caplet.bachelierCaplet()
+        ivCaplet = Caplet.impliedVolatility(k, F, sigma, delta, expiry, t)
+        print(f'Log Normal Put value:  {lnCaplet}')
+        print(f' Bachelier Put value:  {bachCaplet}')
+        print(f'  Implied volatility:  {ivCaplet}\n')
+
+        CG = capletGreeks(k, F, sigma, delta, expiry, t, lnCaplet, df)
+        deltaCaplet = CG.delta()
+        gammaCaplet = CG.gamma()
+        vegaCaplet = CG.vega()
+        thetaCaplet = CG.theta()
+        print(f'delta:  {deltaCaplet}')
+        print(f'gamma:  {gammaCaplet}')
+        print(f' vega:  {vegaCaplet}')
+        print(f'theta:  {thetaCaplet}\n')
+
+
+
+
 
     # problem 2
     K = 0.01
