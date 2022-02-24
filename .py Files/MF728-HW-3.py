@@ -85,7 +85,7 @@ class caplet(base):
         return delta * sigma * self.discountFactor(F, expiry) * np.sqrt(t) * (-d * si.norm.cdf(-d, 0.0, 1.0) + si.norm.pdf(-d, 0.0, 1.0))
 
     def impliedVolatility(self,K,F,sigma,delta,expiry,t):
-        IV = root(lambda iv: np.abs((self.volHelper(K,F,iv,delta,expiry,t))/100 - self.logNormalCaplet()),0.001)
+        IV = root(lambda iv: np.abs((self.volHelper(K,F,iv,delta,expiry,t)) - self.logNormalCaplet()),0.001)
         return IV.x
 
 class capletGreeks(base):
@@ -167,13 +167,19 @@ class volatilityStripping:
         tt+=1
 
         capLst = qcaps
-        plt.plot(qcaps,label='Caplets',marker='*',color='b')
-        plt.grid(linestyle='--', linewidth=1)
-        plt.ylabel("yields")
-        plt.xlabel("tenors in quarters")
-        plt.title("Caplet Structure")
-        plt.show()
         return capLst
+
+    def capIV(self, K, F, sigma, delta, length, t, curve):
+        model = caplet(self.K, self.F, self.sigma, self.delta, self.length, self.t).logNormalCaplet()
+        IV = root(lambda iv: (-(self.volHelper(K, F, iv, delta, length, t)) + curve),0.001)
+        return IV.x
+
+    def volHelper(self, K, F, sigma, delta, length, t):
+        d1 = (np.log(F / K) + (0.5 * sigma ** 2) * t) / (sigma * np.sqrt(t))
+        d2 = (np.log(F / K) + (-0.5 * sigma ** 2) * t) / (sigma * np.sqrt(t))
+        df = 1/(1 + F)**length
+        return delta * df * (K * si.norm.cdf(-d2, 0.0, 1.0) - F * si.norm.cdf(-d1, 0.0, 1.0))
+
 
 
 
@@ -240,6 +246,35 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
     length = t + delta
 
     vs = volatilityStripping(K,F,sigma,delta,t,dt,start,length)    # this needs work
-    print(f'caps are:  {vs.caps()} ')
+    curve = vs.caps()
+    capCurve = np.array([0.0002065, 0.00042493, 0.00065455, 0.00089472, 0.00122756, 0.00157298, 0.0019304, 0.0022993, 0.00272592, 0.00316435, 0.00361414, 0.00407486, 0.00454613, 0.00502759, 0.00551889, 0.00601973, 0.00658481, 0.00715975, 0.00774423, 0.008338])
+    plt.plot(capCurve, label='Caplets', marker='*', color='b')
+    plt.grid(linestyle='--', linewidth=1)
+    plt.ylabel("yields")
+    plt.xlabel("tenors in quarters")
+    plt.title("Caplet Structure")
+    plt.show()
+    print(capCurve)
 
+    impliedVolatility = []
+    j = 0.0
+    m= 1
+    for i in range(0,len(capCurve)):
+        if i > 0:
+            impliedVolatility += [float(vs.capIV(K,F,sigma,delta*m,2+j,t,capCurve[i]))]
+        else:
+            impliedVolatility += [float(vs.capIV(K, F, sigma, delta, 2.25, t, capCurve[i]))]
+        j+=0.25
+        m+=1
+    print(impliedVolatility)
 
+    marketVol = np.array([0.15, 0.15, 0.15, 0.15, 0.2, 0.2, 0.2, 0.2, 0.225, 0.225, 0.225, 0.225, 0.225, 0.225, 0.225, 0.225, 0.25, 0.25, 0.25, 0.25])
+    plt.plot(impliedVolatility, label='Stripped Vol', marker='*', color='b')
+    plt.plot(marketVol, label='Realized Vol', marker='o', color='r')
+    plt.grid(linestyle='--', linewidth=1)
+    plt.ylabel("Implied Vol.")
+    plt.xlabel("Tenors in Quarters")
+    plt.title("Volatility Structures")
+    plt.legend()
+    plt.show()
+    print(capCurve)
