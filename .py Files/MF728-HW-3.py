@@ -16,9 +16,6 @@ from scipy.optimize import root
 
 class base():
 
-    #def __repr__(self):
-    #    return f'initial level is {self.S}, strike is {self.K}, expiry is {self.T}, interest rate is {self.r}, volatility is {self.sigma}.'
-
     def d1(self,S, K, T, r, sigma):
         return (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
 
@@ -32,9 +29,6 @@ class base():
     def euroPut(self, S, K, T, r, sigma):
         put = (K * np.exp(-r * T) * si.norm.cdf(-self.d2(S, K, T, r, sigma), 0.0, 1.0) - S * si.norm.cdf(-self.d1(S, K, T, r, sigma), 0.0, 1.0))
         return float(put)
-
-    #def zeroCoupon(self, years, facevalue, YTM, periods):
-    #    return facevalue / np.power((1 + (YTM / periods)), years * periods)
 
     def discountFactor(self,f,t):
         return 1/(1 + f)**t
@@ -77,8 +71,8 @@ class caplet(base):
         self.t = t
 
     def logNormalCaplet(self):
-        d1 = (np.log(self.F / self.K) + (0.5 * self.sigma ** 2) * self.expiry) / (self.sigma * np.sqrt(self.t))
-        d2 = (np.log(self.F / self.K) + (-0.5 * self.sigma ** 2) * self.expiry) / (self.sigma * np.sqrt(self.t))
+        d1 = (np.log(self.F / self.K) + (0.5 * self.sigma ** 2) * self.t) / (self.sigma * np.sqrt(self.t))
+        d2 = (np.log(self.F / self.K) + (-0.5 * self.sigma ** 2) * self.t) / (self.sigma * np.sqrt(self.t))
 
         return self.delta * self.discountFactor(self.F, self.expiry) * (self.K * si.norm.cdf(-d2, 0.0, 1.0) - self.F * si.norm.cdf(-d1, 0.0, 1.0))
 
@@ -133,6 +127,56 @@ class capletGreeks(base):
 
         return (p1-p2) / (1/12)
 
+class volatilityStripping:
+
+    def __init__(self,K,F,sigma,delta,t,dt,start,length):
+        self.K = K
+        self.F = F
+        self.sigma = sigma
+        self.delta = delta
+        self.t = t
+        self.dt = dt
+        self.start = start
+        self.length = length # t + delta
+
+    def caps(self):
+        quarter = self.start
+        qcaps = []
+        for tt in range(0,5):
+            for i in dt:
+                if i*100 < 0.75*100:
+                    model = caplet(self.K, self.F, self.sigma, self.delta, self.length+i, self.t+i).logNormalCaplet()
+                    quarter += [model]
+                    qcaps = np.cumsum(quarter)
+                else:
+                    model = caplet(self.K, self.F, self.sigma, self.delta, self.length + i, self.t + i).logNormalCaplet()
+                    quarter += [model]
+                    qcaps = np.cumsum(quarter)
+            self.start = qcaps[-1]
+            #print(f'{self.t},  {self.start}')
+            self.t += 1
+            if tt == 0:
+                self.sigma = 0.2
+            elif tt == 1:
+                self.sigma = 0.225
+            elif tt == 2:
+                self.sigma = 0.225
+            elif tt == 3:
+                self.sigma = 0.25
+            self.length = self.t + self.delta
+        tt+=1
+
+        capLst = qcaps
+        plt.plot(qcaps,label='Caplets',marker='*',color='b')
+        plt.grid(linestyle='--', linewidth=1)
+        plt.ylabel("yields")
+        plt.xlabel("tenors in quarters")
+        plt.title("Caplet Structure")
+        plt.show()
+        return capLst
+
+
+
 
 if __name__ == '__main__':      # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -183,4 +227,19 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
     print(f'delta:  {deltaCaplet}')
     print(f'gamma: {gammaCaplet}')
     print(f'vega:  {vegaCaplet}')
-    print(f'theta:  {thetaCaplet}')
+    print(f'theta:  {thetaCaplet}\n')
+
+    # problem 2
+    K = 0.01
+    F = 0.01
+    sigma = 0.15
+    delta = 0.25
+    start = [0]
+    dt = [0, 0.25, 0.5, 0.75]
+    t = 2
+    length = t + delta
+
+    vs = volatilityStripping(K,F,sigma,delta,t,dt,start,length)    # this needs work
+    print(f'caps are:  {vs.caps()} ')
+
+
