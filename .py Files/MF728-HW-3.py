@@ -85,7 +85,7 @@ class caplet(base):
         return delta * sigma * self.discountFactor(F, expiry) * np.sqrt(t) * (-d * si.norm.cdf(-d, 0.0, 1.0) + si.norm.pdf(-d, 0.0, 1.0))
 
     def impliedVolatility(self,K,F,sigma,delta,expiry,t):
-        IV = root(lambda iv: np.abs((self.volHelper(K,F,iv,delta,expiry,t)) - self.logNormalCaplet()),0.001)
+        IV = root(lambda iv: (self.volHelper(K,F,iv,delta,expiry,t) - self.logNormalCaplet()),0.001)
         return IV.x
 
 class capletGreeks(base):
@@ -127,7 +127,7 @@ class capletGreeks(base):
 
         return (p1-p2) / (1/12)
 
-class volatilityStripping:
+class volatilityStripping(caplet):
 
     def __init__(self,K,F,sigma,delta,t,dt,start,length):
         self.K = K
@@ -208,6 +208,7 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
     print(f'vega:   {Greeks.vega()}')
     print(f'put theta:   {Greeks.theta()[1]}')
     print(f'call theta:   {Greeks.theta()[0]}')
+    print('------------------tests above------------------\n')
 
     # Problem 1
     # caplet inputs
@@ -286,7 +287,7 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
     plt.xlabel("tenors in quarters")
     plt.title("Caplet Structure")
     plt.show()
-    print(capCurve)
+    #print(capCurve)
 
     impliedVolatility = []
     j = 0.0
@@ -298,7 +299,7 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
             impliedVolatility += [float(vs.capIV(K, F, sigma, delta, 2.25, t, capCurve[i]))]
         j+=0.25
         m+=1
-    print(impliedVolatility)
+    #print(impliedVolatility)
 
     marketVol = np.array([0.15, 0.15, 0.15, 0.15, 0.2, 0.2, 0.2, 0.2, 0.225, 0.225, 0.225, 0.225, 0.225, 0.225, 0.225, 0.225, 0.25, 0.25, 0.25, 0.25])
     plt.plot(impliedVolatility, label='Stripped Vol', marker='*', color='b')
@@ -309,4 +310,4 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
     plt.title("Volatility Structures")
     plt.legend()
     plt.show()
-    print(capCurve)
+    #print(capCurve)
