@@ -31,7 +31,7 @@ class base():
         return float(put)
 
     def discountFactor(self,f,t):
-        return 1/(1 + f)**t
+        return 1/((1 + f)**t)
 
 class euroGreeks(base):
 
@@ -180,8 +180,18 @@ class volatilityStripping(caplet):
         df = 1/(1 + F)**length
         return delta * df * (K * si.norm.cdf(-d2, 0.0, 1.0) - F * si.norm.cdf(-d1, 0.0, 1.0))
 
+    def DiscountFactor(self,S, T, f):
+        D = exp(- (T - S) * f)
+        return D
 
+    def atmPrice(self,F,sigma,T):
+        return F*(si.norm.cdf(0.5*sigma*np.sqrt(T)) - si.norm.cdf(-0.5 * sigma * np.sqrt(T)))
 
+    def atmCap(self, start, length, sigma,f,F,delta):
+        price = 0
+        for i in range(int(length / delta)):
+            price += delta * self.DiscountFactor(0, start+(i+1)*delta, f) * self.atmPrice(F, sigma, start+i*delta)
+            return price
 
 
 if __name__ == '__main__':      # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -189,8 +199,8 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
     # european option inputs
     S = 0.0125
     K = 0.0125
-    T = 1.0
-    r = 0.0
+    T = 1.25
+    r = 0.0125
     sigma = 0.15
 
     Base = base()
@@ -219,6 +229,7 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
     expiry = 1.25
     t = 1
 
+    print('---------------------problem 1----------------------')
     Caplet = caplet(K, F, sigma, delta, expiry, t)
     lnCaplet = Caplet.logNormalCaplet()
     bachCaplet = Caplet.bachelierCaplet()
@@ -283,11 +294,11 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
     capCurve = np.array([0.0002065, 0.00042493, 0.00065455, 0.00089472, 0.00122756, 0.00157298, 0.0019304, 0.0022993, 0.00272592, 0.00316435, 0.00361414, 0.00407486, 0.00454613, 0.00502759, 0.00551889, 0.00601973, 0.00658481, 0.00715975, 0.00774423, 0.008338])
     plt.plot(capCurve, label='Caplets', marker='*', color='b')
     plt.grid(linestyle='--', linewidth=1)
-    plt.ylabel("yields")
-    plt.xlabel("tenors in quarters")
+    plt.ylabel("Yields")
+    plt.xlabel("Tenors")
     plt.title("Caplet Structure")
     plt.show()
-    #print(capCurve)
+    print(capCurve)
 
     impliedVolatility = []
     j = 0.0
@@ -311,3 +322,4 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
     plt.legend()
     plt.show()
     #print(capCurve)
+
