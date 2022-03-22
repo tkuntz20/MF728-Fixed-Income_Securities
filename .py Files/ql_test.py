@@ -1,9 +1,6 @@
 import QuantLib as ql
-import matplotlib.pyplot as plt
-import numpy as np
-from scipy.integrate import simps, cumtrapz, romb
-import math
 
+print('THis is all just to test quantLib')
 strike_price = 110.0
 payoff = ql.PlainVanillaPayoff(ql.Option.Call, strike_price)
 
