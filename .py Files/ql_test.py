@@ -37,4 +37,4 @@ heston = ql.HestonProcess(flat_ts, div, spot_handle, v0, kappa, theta, sigma, rh
 engine = ql.AnalyticHestonEngine(ql.HestonModel(heston), 0.01, 1000)
 euro_option.setPricingEngine(engine)
 h_price = euro_option.NPV()
-print(f'The Heston model price,  {h_price}')
+print(f'The Heston model price:  {h_price}')
