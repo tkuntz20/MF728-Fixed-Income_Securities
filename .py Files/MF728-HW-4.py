@@ -108,4 +108,18 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
     bsvol = np.zeros((5, 6))
     for i in range(len(sigma)):
         for j in range(len(sigma[0])):
-            bsvol[i][j] = root(lambda x: (blackScholes(annuity[i], x, 5, F0[i] * bps, K[i][j] * bps)[0] - premium[i][j]), 0.1).x
+            # blackScholes(F, K, T, sigma, annuity):
+            bsvol[i][j] = root(lambda x: (blackScholes(F0[i] * bps, K[i][j] * bps, 5, x, annuity[i])[0] - premium[i][j]), 0.1).x
+    bssigma2 = pd.DataFrame(bsvol, index=['1Y', '2Y', '3Y', '4Y', '5Y'], columns=['ATM-50', 'ATM-25', 'ATM-5', 'ATM+5', 'ATM+25', 'ATM+50'])
+    print(f"BS Vols are:\n{bssigma2}")
+
+    bsdelta = np.zeros((5, 6))
+    for i in range(len(K)):
+        for j in range(len(K[0])):
+            bsdelta[i][j] = blackScholes(F0[i] * bps, K[i][j] * bps, 5, bsvol[i][j], annuity[i])[1]
+    bsdel = pd.DataFrame(bsdelta, index=['1Y', '2Y', '3Y', '4Y', '5Y'], columns=['ATM-50', 'ATM-25', 'ATM-5', 'ATM+5', 'ATM+25', 'ATM+50'])
+    print(f"BS Vols are:\n{bsdel}")
+
+
+
+
