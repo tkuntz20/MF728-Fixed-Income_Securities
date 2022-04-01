@@ -104,3 +104,8 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
     sig2 = pd.DataFrame(sigma2, index=['1Y', '2Y', '3Y', '4Y', '5Y'], columns=['ATM+75', 'ATM-75'])
     price2 = pd.DataFrame(bachelier2, index=['1Y', '2Y', '3Y', '4Y', '5Y'], columns=['ATM+75', 'ATM-75'])
     print(f"Normal Vols are:\n{sig2}\nPrices are:\n{price2}")
+
+    bsvol = np.zeros((5, 6))
+    for i in range(len(sigma)):
+        for j in range(len(sigma[0])):
+            bsvol[i][j] = root(lambda x: (blackScholes(annuity[i], x, 5, F0[i] * bps, K[i][j] * bps)[0] - premium[i][j]), 0.1).x
