@@ -127,7 +127,6 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
         for j in range(len(sigma[0])):
             sigma_up = asymp(f_up, K[i][j] * bps, 5, param[i][0], param[i][1], 0.5, param[i][2])
             sigma_down = asymp(f_down, K[i][j] * bps, 5, param[i][0], param[i][1], 0.5, param[i][2])
-            #      bachelier(F0[i] * bps, K2[i][j] * bps, 5, sigma2[i][j], annuity[i])
             v_up = bachelier(f_up, K[i][j] * bps, 5, sigma_up, annuity[i])
             v_down = bachelier(f_down, K[i][j] * bps, 5, sigma_down, annuity[i])
             v_1 = bachelier(f_up, K[i][j] * bps, 5, sigma[i][j], annuity[i])
