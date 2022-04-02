@@ -96,14 +96,12 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
 
     for i in range(len(K2)):
         for j in range(len(K2[0])):
-            #              asymp(F, K, T, sigma0, alpha, beta, rho)
             sigma2[i][j] = asymp(F0[i] * bps, K2[i][j] * bps, 5, param[i][0], param[i][1], 0.5, param[i][2])
 
     K2 = F2 - change2
     for i in range(len(K2)):
         for j in range(len(K2[0])):
-            #                   bachelier(F, K, T, sigma, annuity):
-            bachelier2[i][j] = bachelier(F0[i] * bps, K2[i][j] * bps, 5, sigma2[i][j] * bps, annuity[i])
+            bachelier2[i][j] = bachelier(F0[i] * bps, K2[i][j] * bps, 5, sigma2[i][j], annuity[i])
     sig2 = pd.DataFrame(sigma2, index=['1Y', '2Y', '3Y', '4Y', '5Y'], columns=['ATM+75', 'ATM-75'])
     price2 = pd.DataFrame(bachelier2, index=['1Y', '2Y', '3Y', '4Y', '5Y'], columns=['ATM+75', 'ATM-75'])
     print(f"Normal Vols are:\n{sig2}\nPrices are:\n{price2}")
@@ -111,18 +109,30 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
     bsvol = np.zeros((5, 6))
     for i in range(len(sigma)):
         for j in range(len(sigma[0])):
-            # blackScholes(F, K, T, sigma, annuity):
-            bsvol[i][j] = root(lambda x: (blackScholes(F0[i] * bps, K[i][j] * bps, 5, x, annuity[i])[0] - premium[i][j]), 0.1).x
+            bsvol[i][j] = root(lambda x: (blackScholes(F0[i] * bps, K[i][j] * bps, 5, x, annuity[i])[1] - premium[i][j]), 0.1).x
     bssigma2 = pd.DataFrame(bsvol, index=['1Y', '2Y', '3Y', '4Y', '5Y'], columns=['ATM-50', 'ATM-25', 'ATM-5', 'ATM+5', 'ATM+25', 'ATM+50'])
     print(f"BS Vols are:\n{bssigma2}")
 
     bsdelta = np.zeros((5, 6))
     for i in range(len(K)):
         for j in range(len(K[0])):
-            bsdelta[i][j] = blackScholes(F0[i] * bps, K[i][j] * bps, 5, bsvol[i][j], annuity[i])[1]
+            bsdelta[i][j] = blackScholes(F0[i] * bps, K[i][j] * bps, 5, bsvol[i][j], annuity[i])[0]
     bsdel = pd.DataFrame(bsdelta, index=['1Y', '2Y', '3Y', '4Y', '5Y'], columns=['ATM-50', 'ATM-25', 'ATM-5', 'ATM+5', 'ATM+25', 'ATM+50'])
     print(f"BS deltas are:\n{bsdel}")
 
-
-
+    adjdelta = np.zeros((5, 6))
+    for i in range(len(sigma)):
+        f_up = (F0[i] + 1) * bps
+        f_down = (F0[i] - 1) * bps
+        for j in range(len(sigma[0])):
+            sigma_up = asymp(f_up, K[i][j] * bps, 5, param[i][0], param[i][1], 0.5, param[i][2])
+            sigma_down = asymp(f_down, K[i][j] * bps, 5, param[i][0], param[i][1], 0.5, param[i][2])
+            #      bachelier(F0[i] * bps, K2[i][j] * bps, 5, sigma2[i][j], annuity[i])
+            v_up = bachelier(f_up, K[i][j] * bps, 5, sigma_up, annuity[i])
+            v_down = bachelier(f_down, K[i][j] * bps, 5, sigma_down, annuity[i])
+            v_1 = bachelier(f_up, K[i][j] * bps, 5, sigma[i][j], annuity[i])
+            v_2 = bachelier(f_down, K[i][j] * bps, 5, sigma[i][j], annuity[i])
+            adjdelta[i][j] = (v_1 - v_2) / (f_up - f_down) + (v_up - v_down) / (f_up - f_down)
+    smileDeltas = pd.DataFrame(adjdelta, index=['1Y', '2Y', '3Y', '4Y', '5Y'], columns=['ATM-50', 'ATM-25', 'ATM-5', 'ATM+5', 'ATM+25', 'ATM+50'])
+    print(f'smile adjusted deltas:  \n{smileDeltas}')
 
