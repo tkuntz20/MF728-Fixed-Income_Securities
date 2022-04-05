@@ -22,6 +22,15 @@ class SABR:
     def __repr__(self):
         return f'- F_0  = {self.F}\n- strike = {self.K}\n- expiry = {self.T}\n- volatility = {self.sigma}\n- the annuity = {self.annuity}\n'
 
+    def instentaniousForward(self, F, bps):
+        return 2 * np.log(0.5 * F * bps + 1)
+
+    def annuityFunc(self, f, S):
+        annuity = np.zeros(len(f))
+        for i in range(1, 11):
+            annuity += 0.5 * np.exp(-0.5 * (S + i) * f)
+        return annuity
+
     def bachelier(self, F, K, T, sigma, annuity):
         d1 = (F - K) / (sigma * (T ** 0.5))
         return annuity * sigma * (T ** 0.5) * (d1 * si.norm.cdf(d1) + si.norm.pdf(d1))
@@ -30,6 +39,13 @@ class SABR:
         d1 = (np.log(F / K) + (0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
         d2 = (np.log(F / K) + (-0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
         return annuity * si.norm.cdf(d1), annuity * (F * si.norm.cdf(d1) - K * si.norm.cdf(d2))
+
+    def blackVol(self, F0, K, T, sigma, annuity, premium, bps):
+        bvol = np.zeros((5, 6))
+        for i in range(len(sigma)):
+            for j in range(len(sigma[0])):
+                bvol[i][j] = root(lambda x: (self.blacksModel(F0[i] * bps, K[i][j] * bps, T, x, annuity[i])[1] - premium[i][j]), 0.1).x
+        return bvol
 
     def objectiveSABR(self, params, T, Klst, F, sigmaLst):
         sigma0, alpha, rho = params
@@ -54,97 +70,119 @@ class SABR:
         asympAprox = (1 + (part1 + part2 + part3) * epsilon)
         return partA * asympAprox
 
+    def blackDeltas(self, F0, K, bsvol, annuity):
+        bsdelta = np.zeros((5, 6))
+        for i in range(len(K)):
+            for j in range(len(K[0])):
+                bsdelta[i][j] = self.blacksModel(F0[i] * bps, K[i][j] * bps, 5, bsvol[i][j], annuity[i])[0]
+        return bsdelta
 
-if __name__ == '__main__':      # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    def smileAdjDeltas(self, F0, K, sigma, bps, annuity, param):
+        adjdelta = np.zeros((5, 6))
+        for i in range(len(sigma)):
+            fUp = (F0[i] + 1) * bps
+            fDown = (F0[i] - 1) * bps
+            for j in range(len(sigma[0])):
+                sigmaUp = self.asymptoticSABR(fUp, K[i][j] * bps, 5, param[i][0], param[i][1], 0.5, param[i][2])
+                sigmaDown = self.asymptoticSABR(fDown, K[i][j] * bps, 5, param[i][0], param[i][1], 0.5, param[i][2])
+
+                vUp = self.bachelier(fUp, K[i][j] * bps, 5, sigmaUp, annuity[i])
+                vDown = self.bachelier(fDown, K[i][j] * bps, 5, sigmaDown, annuity[i])
+
+                vOne = self.bachelier(fUp, K[i][j] * bps, 5, sigma[i][j], annuity[i])
+                vTwo = self.bachelier(fDown, K[i][j] * bps, 5, sigma[i][j], annuity[i])
+                adjdelta[i][j] = (vOne - vTwo) / (fUp - fDown) + (vUp - vDown) / (fUp - fDown)
+        return adjdelta
+
+if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     F0 = np.array([117.45, 120.60, 133.03, 152.05, 171.85])
     S = np.array([1,2,3,4,5])
     bps = 0.0001
-
-    sabr = SABR(1, 130, 5, 20, 0.76)
-    print(repr(sabr))
-
-    f = 2 * np.log(0.5 * F0 * bps + 1)
-    instentanious = pd.Series(f.T, index= ['1Y','2Y','3Y','4Y','5Y'], name='Inst. Forwards')
-    print(f'Instanteaneous Forward Rates: \n{instentanious}')
-
-    annuity = np.zeros(len(f))
-    for i in range(1,11):
-        annuity += 0.5 * np.exp(-0.5 * (S + i) * f)
-    annuity = pd.Series(annuity.T, index= ['1Y','2Y','3Y','4Y','5Y'], name='Annuities')
-    print(f'\nThe annuity factors:  \n{annuity}')
-
-    F = np.array(6 * [117.45, 120.60, 133.03, 152.05, 171.85]).reshape(6, 5).T
-    change = np.array([-50, -25, -5, 5, 25, 50])
-    K = F + change
+    T = 5
+    A = 4.813959
+    F = 117.45
+    K = 120
     sigma = np.array([[57.31, 51.51, 49.28, 48.74, 41.46, 37.33], \
                       [51.72, 46.87, 43.09, 42.63, 38.23, 34.55], \
                       [46.29, 44.48, 43.61, 39.36, 35.95, 32.55], \
                       [45.72, 41.80, 38.92, 38.19, 34.41, 31.15], \
                       [44.92, 40.61, 37.69, 36.94, 33.36, 30.21]])
+    # test for the SABR parameters
+    sabr = SABR(F, K, T, 57.31, A)
+    print(repr(sabr))
+
+    f = sabr.instentaniousForward(F0, bps)
+    instentanious = pd.Series(f.T, index= ['1Y','2Y','3Y','4Y','5Y'], name='Forwards\n')
+    print(f'Inst. Forward Rates: \n{instentanious}')
+    plt.plot(instentanious, label='forwards', marker='*', color='red')
+    plt.grid(linestyle='--', linewidth=1)
+    plt.ylabel("Yield")
+    plt.xlabel("Expiry")
+    plt.title("Forward Rate Curve")
+    plt.show()
+
+
+    annuity = sabr.annuityFunc(f, S)
+    annuity = pd.Series(annuity.T, index= ['1Y','2Y','3Y','4Y','5Y'], name='Annuities')
+    print(f'\nThe annuity factors:  \n{annuity}')
+    plt.plot(annuity, label='annuities', marker='*', color='b')
+    plt.grid(linestyle='--', linewidth=1)
+    plt.ylabel("Yield")
+    plt.xlabel("Expiry")
+    plt.title("Annuity Curve")
+    plt.show()
+
+    F = np.array(6 * [117.45, 120.60, 133.03, 152.05, 171.85]).reshape(6, 5).T
+    shift = np.array([-50, -25, -5, 5, 25, 50])
+    K = F + shift
     premium = np.zeros((5, 6))
 
     for i in range(len(K)):
         for j in range(len(K[0])):
             #  bachelier(F, K, T, sigma, annuity):
-            premium[i][j] = sabr.bachelier(F0[i] * bps, K[i][j] * bps, 5, sigma[i][j] * bps, annuity[i])
+            premium[i][j] = sabr.bachelier(F0[i] * bps, K[i][j] * bps, T, sigma[i][j] * bps, annuity[i])
     prem = pd.DataFrame(premium, index=['1Y','2Y','3Y','4Y','5Y'],columns=['ATM-50','ATM-25','ATM-5','ATM+5','ATM+25','ATM+50'])
-    print(f'\nPremiums: \n{prem}\n')
+    print(f'\n---------------------------Premiums---------------------------\n{prem}\n')
 
     start = [0.1, 0.1, -0.1]
     param = np.zeros((5,3))
     for i in range(len(K)):
-        opt = minimize(sabr.objectiveSABR, start, args=(5, K[i] * bps, F0[i] * bps, sigma[i] * bps), method = 'SLSQP', bounds = ((0.01,1.5),(0,1.5),(-1,1)))
+        opt = minimize(sabr.objectiveSABR, start, args=(T, K[i] * bps, F0[i] * bps, sigma[i] * bps), method = 'SLSQP', bounds = ((0.01,1.5),(0,1.5),(-1,1)))
         param[i] = opt.x
         print(f'minimized vol: \n{opt.fun}')
 
-    SABRr = pd.DataFrame(param, index = ['1Y','2Y','3Y','4Y','5Y'], columns = ['sigma0','alpha','rho'])
-    print(f'\nParameters : \n{SABRr}\n')
+    SABRparameters = pd.DataFrame(param, index = ['1Y','2Y','3Y','4Y','5Y'], columns = ['sigma0','alpha','rho'])
+    print(f'\n------------Parameters----------- \n{SABRparameters}\n')
 
     F2 = np.array(2 * [117.45, 120.60, 133.03, 152.05, 171.85]).reshape(2, 5).T
-    change2 = np.array([-75, 75])
-    K2 = F2 + change2
+    shift2 = np.array([-75, 75])
+    K2 = F2 + shift2
     sigma2 = np.zeros((5, 2))
     bachelier2 = np.zeros((5, 2))
 
     for i in range(len(K2)):
         for j in range(len(K2[0])):
-            sigma2[i][j] = sabr.asymptoticSABR(F0[i] * bps, K2[i][j] * bps, 5, param[i][0], param[i][1], 0.5, param[i][2])
+            sigma2[i][j] = sabr.asymptoticSABR(F0[i] * bps, K2[i][j] * bps, T, param[i][0], param[i][1], 0.5, param[i][2])
 
-    K2 = F2 - change2
+    K2 = F2 - shift2
     for i in range(len(K2)):
         for j in range(len(K2[0])):
-            bachelier2[i][j] = sabr.bachelier(F0[i] * bps, K2[i][j] * bps, 5, sigma2[i][j], annuity[i])
+            bachelier2[i][j] = sabr.bachelier(F0[i] * bps, K2[i][j] * bps, T, sigma2[i][j], annuity[i])
+
     sig2 = pd.DataFrame(sigma2, index=['1Y', '2Y', '3Y', '4Y', '5Y'], columns=['ATM+75', 'ATM-75'])
     price2 = pd.DataFrame(bachelier2, index=['1Y', '2Y', '3Y', '4Y', '5Y'], columns=['ATM+75', 'ATM-75'])
-    print(f"Normal Vols are:\n{sig2}\nPrices are:\n{price2}")
+    print(f"\n------Normal Vols------\n{sig2}\n--------Prices--------\n{price2}")
 
-    bsvol = np.zeros((5, 6))
-    for i in range(len(sigma)):
-        for j in range(len(sigma[0])):
-            bsvol[i][j] = root(lambda x: (sabr.blacksModel(F0[i] * bps, K[i][j] * bps, 5, x, annuity[i])[1] - premium[i][j]), 0.1).x
+    bsvol = sabr.blackVol(F0,K,T,sigma,annuity,premium,bps)
     bssigma2 = pd.DataFrame(bsvol, index=['1Y', '2Y', '3Y', '4Y', '5Y'], columns=['ATM-50', 'ATM-25', 'ATM-5', 'ATM+5', 'ATM+25', 'ATM+50'])
-    print(f"BS Vols are:\n{bssigma2}")
+    print(f"\n---------------------------BS Vols---------------------------\n{bssigma2}")
 
-    bsdelta = np.zeros((5, 6))
-    for i in range(len(K)):
-        for j in range(len(K[0])):
-            bsdelta[i][j] = sabr.blacksModel(F0[i] * bps, K[i][j] * bps, 5, bsvol[i][j], annuity[i])[0]
+    bsdelta = sabr.blackDeltas(F0, K, bsvol, annuity)
     bsdel = pd.DataFrame(bsdelta, index=['1Y', '2Y', '3Y', '4Y', '5Y'], columns=['ATM-50', 'ATM-25', 'ATM-5', 'ATM+5', 'ATM+25', 'ATM+50'])
-    print(f"BS deltas are:\n{bsdel}")
+    print(f"\n---------------------------BS Deltas---------------------------\n{bsdel}")
 
-    adjdelta = np.zeros((5, 6))
-    for i in range(len(sigma)):
-        f_up = (F0[i] + 1) * bps
-        f_down = (F0[i] - 1) * bps
-        for j in range(len(sigma[0])):
-            sigma_up = sabr.asymptoticSABR(f_up, K[i][j] * bps, 5, param[i][0], param[i][1], 0.5, param[i][2])
-            sigma_down = sabr.asymptoticSABR(f_down, K[i][j] * bps, 5, param[i][0], param[i][1], 0.5, param[i][2])
-            v_up = sabr.bachelier(f_up, K[i][j] * bps, 5, sigma_up, annuity[i])
-            v_down = sabr.bachelier(f_down, K[i][j] * bps, 5, sigma_down, annuity[i])
-            v_1 = sabr.bachelier(f_up, K[i][j] * bps, 5, sigma[i][j], annuity[i])
-            v_2 = sabr.bachelier(f_down, K[i][j] * bps, 5, sigma[i][j], annuity[i])
-            adjdelta[i][j] = (v_1 - v_2) / (f_up - f_down) + (v_up - v_down) / (f_up - f_down)
+    adjdelta = sabr.smileAdjDeltas(F0, K, sigma, bps, annuity, param)
     smileDeltas = pd.DataFrame(adjdelta, index=['1Y', '2Y', '3Y', '4Y', '5Y'], columns=['ATM-50', 'ATM-25', 'ATM-5', 'ATM+5', 'ATM+25', 'ATM+50'])
-    print(f'smile adjusted deltas:  \n{smileDeltas}')
+    print(f'\n-------------------Smile Adjusted Deltas--------------------\n{smileDeltas}')
 
