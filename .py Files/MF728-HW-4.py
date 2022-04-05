@@ -20,7 +20,7 @@ class SABR:
         self.annuity = annuity
 
     def __repr__(self):
-        return f'- F_0  = {self.F}\n- stike = {self.K}\n- expiry = {self.T}\n- volatility = {self.sigma}\n- the annuity = {self.annuity}\n'
+        return f'- F_0  = {self.F}\n- strike = {self.K}\n- expiry = {self.T}\n- volatility = {self.sigma}\n- the annuity = {self.annuity}\n'
 
     def bachelier(self, F, K, T, sigma, annuity):
         d1 = (F - K) / (sigma * (T ** 0.5))
@@ -40,18 +40,19 @@ class SABR:
         return value
 
     def asymptoticSABR(self, F, K, T, sigma0, alpha, beta, rho):
-        midpoint = (F + K) / 2
-        zeta = alpha / (sigma0 * (1 - beta)) * (F ** (1 - beta) - K ** (1 - beta))
-        epsilon = T * alpha ** 2
-        delta = np.log((np.sqrt(1 - 2 * rho * zeta + zeta ** 2) + zeta - rho) / (1 - rho))
-        gamma1 = beta / midpoint
-        gamma2 = beta * (beta - 1) / midpoint ** 2
-        partA = alpha * (F - K) / delta
-        partBa = (2 * gamma2 - gamma1 ** 2) / 24 * (sigma0 * midpoint ** beta / alpha) ** 2
-        partBb = rho * gamma1 / 4 * sigma0 * midpoint ** beta / alpha
-        partBc = (2 -3 * rho ** 2) / 24
-        partB = (1 + (partBa + partBb + partBc) * epsilon)
-        return partA * partB
+        Fmid = (F + K) / 2                                                                     # F_(mid) = (F_0 + K) / 2
+        gamma1 = beta / Fmid                                                                   # gamma_1
+        gamma2 = beta * (beta - 1) / Fmid ** 2                                                 # gamma_2
+        zeta = alpha / (sigma0 * (1 - beta)) * (F ** (1 - beta) - K ** (1 - beta))             # zeta from slide 37
+        epsilon = T * (alpha ** 2)                                                             # T(alpha^2)
+        delta = np.log((np.sqrt(1 - 2 * rho * zeta + zeta ** 2) + zeta - rho) / (1 - rho))     # delta(K, F_0, sigma_0, alpha, beta)
+
+        partA = alpha * (F - K) / delta                                                        # alpha *(F-K)/delta
+        part1 = ((2 * gamma2 - gamma1 ** 2) / 24) * ((sigma0 * (Fmid ** beta)) / alpha) ** 2   # fractions 1 & 2 from eq. 27
+        part2 = (rho * gamma1 / 4) * ((sigma0 * (Fmid ** beta)) / alpha)                       # fractions 3 & 4 from eq. 27
+        part3 = (2 -3 * (rho ** 2)) / 24                                                       # fraction 5 from eq. 27
+        asympAprox = (1 + (part1 + part2 + part3) * epsilon)
+        return partA * asympAprox
 
 
 if __name__ == '__main__':      # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
