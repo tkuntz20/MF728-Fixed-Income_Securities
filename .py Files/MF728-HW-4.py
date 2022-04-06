@@ -113,25 +113,12 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
     print(repr(sabr))
 
     f = sabr.instentaniousForward(F0, bps)
-    instentanious = pd.Series(f.T, index= ['1Y','2Y','3Y','4Y','5Y'], name='Forwards\n')
+    instentanious = pd.Series(f.T, index= ['1Y','2Y','3Y','4Y','5Y'])
     print(f'Inst. Forward Rates: \n{instentanious}')
-    plt.plot(instentanious, label='forwards', marker='*', color='red')
-    plt.grid(linestyle='--', linewidth=1)
-    plt.ylabel("Yield")
-    plt.xlabel("Expiry")
-    plt.title("Forward Rate Curve")
-    plt.show()
-
 
     annuity = sabr.annuityFunc(f, S)
-    annuity = pd.Series(annuity.T, index= ['1Y','2Y','3Y','4Y','5Y'], name='Annuities')
-    print(f'\nThe annuity factors:  \n{annuity}')
-    plt.plot(annuity, label='annuities', marker='*', color='b')
-    plt.grid(linestyle='--', linewidth=1)
-    plt.ylabel("Yield")
-    plt.xlabel("Expiry")
-    plt.title("Annuity Curve")
-    plt.show()
+    annuity = pd.Series(annuity.T, index= ['1Y','2Y','3Y','4Y','5Y'])
+    print(f'\nThe Annuity Factors:  \n{annuity}')
 
     F = np.array(6 * [117.45, 120.60, 133.03, 152.05, 171.85]).reshape(6, 5).T
     shift = np.array([-50, -25, -5, 5, 25, 50])
@@ -150,7 +137,7 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
     for i in range(len(K)):
         opt = minimize(sabr.objectiveSABR, start, args=(T, K[i] * bps, F0[i] * bps, sigma[i] * bps), method = 'SLSQP', bounds = ((0.01,1.5),(0,1.5),(-1,1)))
         param[i] = opt.x
-        print(f'minimized vol: \n{opt.fun}')
+        print(f'Minimized Vol: \n{opt.fun}')
 
     SABRparameters = pd.DataFrame(param, index = ['1Y','2Y','3Y','4Y','5Y'], columns = ['sigma0','alpha','rho'])
     print(f'\n------------Parameters----------- \n{SABRparameters}\n')
