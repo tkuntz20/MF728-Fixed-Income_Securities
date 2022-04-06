@@ -44,7 +44,7 @@ class SABR:
         bvol = np.zeros((5, 6))
         for i in range(len(sigma)):
             for j in range(len(sigma[0])):
-                bvol[i][j] = root(lambda x: (self.blacksModel(F0[i] * bps, K[i][j] * bps, T, x, annuity[i])[1] - premium[i][j]), 0.1).x
+                bvol[i][j] = root(lambda x: (self.blacksModel(F0[i] * bps, K[i][j] * bps, T, x, annuity[i])[1] - premium[i][j]), 0.01).x
         return bvol
 
     def objectiveSABR(self, params, T, Klst, F, sigmaLst):
