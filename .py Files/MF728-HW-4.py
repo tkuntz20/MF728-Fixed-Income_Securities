@@ -134,7 +134,7 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
     prem = pd.DataFrame(premium, index=['1Y','2Y','3Y','4Y','5Y'],columns=['ATM-50','ATM-25','ATM-5','ATM+5','ATM+25','ATM+50'])
     print(f'\n---------------------------Premiums---------------------------\n{prem}\n')
 
-    start = [0.1, 0.1, -0.1]
+    start = [0.1, 0.1, -0.5]
     param = np.zeros((5,3))
     for i in range(len(K)):
         opt = minimize(sabr.objectiveSABR, start, args=(T, K[i] * bps, F0[i] * bps, sigma[i] * bps), method = 'SLSQP', bounds = ((0.01,1.5),(0,1.5),(-1,1)))
