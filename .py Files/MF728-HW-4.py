@@ -123,6 +123,8 @@ if __name__ == '__main__':      # ++++++++++++++++++++++++++++++++++++++++++++++
     F = np.array(6 * [117.45, 120.60, 133.03, 152.05, 171.85]).reshape(6, 5).T
     shift = np.array([-50, -25, -5, 5, 25, 50])
     K = F + shift
+
+    #calculate premium
     premium = np.zeros((5, 6))
 
     for i in range(len(K)):
