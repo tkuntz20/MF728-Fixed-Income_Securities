@@ -45,7 +45,15 @@ def creditDefaultSwaps(S1, P0, P1, R, r):
 
 if __name__ == '__main__':      # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+    r = 0.02
+    R = 0.4
+    S1 = 0.01
+    S2 = 0.011
+    S3 = 0.012
+    S5 = 0.014
+    P0 = 1
     # part a
+    cds = creditDefaultSwaps(S1=S1, P0=P0, P1=P1, R=R, r=r)
 
 
 
